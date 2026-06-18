@@ -407,6 +407,26 @@ textarea#user-input::placeholder { color: var(--muted); }
 .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .input-hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.4rem; padding-left: 0.2rem; }
 
+/* ─── スポット地図 ─── */
+.map-wrapper {
+  margin: 0.25rem 0 0.25rem 2.8rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  animation: fadeUp 0.3s ease;
+}
+.map-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 0.35rem 0.75rem;
+  background: var(--bg-hover);
+  border-bottom: 1px solid var(--border);
+}
+.map-tile {
+  height: 280px;
+  width: 100%;
+}
+
 /* ─── その他 自由入力 ─── */
 .other-input {
   margin-bottom: 1rem;

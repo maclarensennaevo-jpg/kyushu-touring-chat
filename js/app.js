@@ -23,6 +23,7 @@ const stepMeta = {
 
 let history = [];
 let busy = false;
+let mapCount = 0;
 
 // ─── Init ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -211,6 +212,7 @@ async function callAPI() {
     history.push({ role: 'assistant', content: data.reply });
     removeTyping(typingId);
     addMessage('ai', data.reply);
+    if (data.spots && data.spots.length > 0) renderMap(data.spots);
   } catch (err) {
     removeTyping(typingId);
     addMessage('ai', `⚠️ エラーが発生しました。\n\`${err.message}\`\n\nもう一度試してください。`);
@@ -292,11 +294,42 @@ function autoResize(ta) {
   });
 }
 
+function renderMap(spots) {
+  const id = `map-tile-${++mapCount}`;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'map-wrapper';
+  wrapper.innerHTML = `
+    <div class="map-label">📍 スポット地図（OpenStreetMap）</div>
+    <div id="${id}" class="map-tile"></div>`;
+  const box = document.getElementById('chat-messages');
+  box.appendChild(wrapper);
+  box.scrollTop = box.scrollHeight;
+
+  // DOM 挿入後に Leaflet を初期化
+  setTimeout(() => {
+    const map = L.map(id, { scrollWheelZoom: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    const markers = spots
+      .filter(s => s.lat && s.lng)
+      .map(s => L.marker([s.lat, s.lng]).addTo(map).bindPopup(`<strong>${s.name}</strong>`));
+
+    if (markers.length === 1) {
+      map.setView([spots[0].lat, spots[0].lng], 13);
+    } else if (markers.length > 1) {
+      map.fitBounds(L.featureGroup(markers).getBounds().pad(0.25));
+    }
+  }, 80);
+}
+
 function restartWizard() {
   // Reset state
   currentStep = 1;
   Object.assign(conditions, { departure: '', destination: [], duration: '', themes: [], distance: '', companions: '' });
   history = [];
+  mapCount = 0;
 
   // Reset step indicators
   document.querySelectorAll('.step').forEach(dot => {

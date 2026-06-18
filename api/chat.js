@@ -32,9 +32,18 @@ module.exports = async (req, res) => {
     const chat = model.startChat({ history: geminiHistory });
     const lastMsg = messages[messages.length - 1];
     const result = await chat.sendMessage(lastMsg.content);
-    const reply = result.response.text();
+    const raw = result.response.text();
 
-    res.status(200).json({ reply });
+    // [SPOTS_JSON]...[/SPOTS_JSON] を抽出してフロントへ渡す
+    const spotsMatch = raw.match(/\[SPOTS_JSON\]([\s\S]*?)\[\/SPOTS_JSON\]/);
+    let spots = [];
+    let reply = raw;
+    if (spotsMatch) {
+      try { spots = JSON.parse(spotsMatch[1].trim()); } catch (_) {}
+      reply = raw.replace(/\[SPOTS_JSON\][\s\S]*?\[\/SPOTS_JSON\]/g, '').trim();
+    }
+
+    res.status(200).json({ reply, spots });
   } catch (err) {
     console.error('Gemini API error:', err);
     res.status(500).json({ error: err.message || 'Gemini API の呼び出しに失敗しました' });
@@ -101,6 +110,14 @@ ${gourmetSection}
 
 **ルート概要**：
 （ルート全体の流れや雰囲気、見どころのつながりを3〜4行で説明）
+
+## 位置情報の提供（必須）
+スポットや施設を紹介する際は、返答の末尾に必ず以下のJSON形式で位置情報を含めてください。
+紹介したスポット・店舗すべての緯度経度を記載してください。
+
+[SPOTS_JSON]
+[{"name":"スポット名","lat":緯度,"lng":経度},...]
+[/SPOTS_JSON]
 
 ## 追加質問への対応
 宿泊地・グルメ・道路状況・バイクの停め場所・温泉・給油ポイントなど、何でも答えてください。
