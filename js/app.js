@@ -212,6 +212,7 @@ async function callAPI() {
     history.push({ role: 'assistant', content: data.reply });
     removeTyping(typingId);
     addMessage('ai', data.reply);
+    console.log('[spots]', data.spots);
     if (data.spots && data.spots.length > 0) renderMap(data.spots);
   } catch (err) {
     removeTyping(typingId);
@@ -303,7 +304,7 @@ function renderMap(spots) {
     <div id="${id}" class="map-tile"></div>`;
   const box = document.getElementById('chat-messages');
   box.appendChild(wrapper);
-  box.scrollTop = box.scrollHeight;
+  // ここでは scroll しない（addMessage の scrollIntoView を維持する）
 
   // DOM 挿入後に Leaflet を初期化
   setTimeout(() => {

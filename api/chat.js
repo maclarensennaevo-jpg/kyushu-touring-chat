@@ -34,13 +34,22 @@ module.exports = async (req, res) => {
     const result = await chat.sendMessage(lastMsg.content);
     const raw = result.response.text();
 
-    // [SPOTS_JSON]...[/SPOTS_JSON] を抽出してフロントへ渡す
-    const spotsMatch = raw.match(/\[SPOTS_JSON\]([\s\S]*?)\[\/SPOTS_JSON\]/);
+    // <SPOTS_JSON>...</SPOTS_JSON> を抽出してフロントへ渡す
+    const spotsMatch = raw.match(/<SPOTS_JSON>([\s\S]*?)<\/SPOTS_JSON>/i);
     let spots = [];
     let reply = raw;
     if (spotsMatch) {
-      try { spots = JSON.parse(spotsMatch[1].trim()); } catch (_) {}
-      reply = raw.replace(/\[SPOTS_JSON\][\s\S]*?\[\/SPOTS_JSON\]/g, '').trim();
+      try {
+        // Gemini がコードブロックで囲んだ場合も除去して解析
+        const jsonStr = spotsMatch[1].replace(/```(?:json)?/g, '').trim();
+        const parsed = JSON.parse(jsonStr);
+        if (Array.isArray(parsed)) spots = parsed;
+      } catch (e) {
+        console.error('SPOTS_JSON parse error:', e.message, spotsMatch[1]);
+      }
+      reply = raw.replace(/<SPOTS_JSON>[\s\S]*?<\/SPOTS_JSON>/gi, '').trim();
+    } else {
+      console.warn('SPOTS_JSON not found in response');
     }
 
     res.status(200).json({ reply, spots });
@@ -112,12 +121,12 @@ ${gourmetSection}
 （ルート全体の流れや雰囲気、見どころのつながりを3〜4行で説明）
 
 ## 位置情報の提供（必須）
-スポットや施設を紹介する際は、返答の末尾に必ず以下のJSON形式で位置情報を含めてください。
-紹介したスポット・店舗すべての緯度経度を記載してください。
+返答の末尾に、紹介したすべてのスポット・店舗の緯度経度を必ず以下の形式で出力してください。
+マークダウンのコードブロックは使わず、タグをそのまま出力してください。
 
-[SPOTS_JSON]
-[{"name":"スポット名","lat":緯度,"lng":経度},...]
-[/SPOTS_JSON]
+<SPOTS_JSON>
+[{"name":"スポット名","lat":緯度の数値,"lng":経度の数値},{"name":"スポット名2","lat":緯度,"lng":経度}]
+</SPOTS_JSON>
 
 ## 追加質問への対応
 宿泊地・グルメ・道路状況・バイクの停め場所・温泉・給油ポイントなど、何でも答えてください。
