@@ -202,7 +202,11 @@ function addMessage(role, text) {
     <div class="bubble">${role === 'ai' ? md(text) : esc(text)}</div>`;
   const box = document.getElementById('chat-messages');
   box.appendChild(el);
-  box.scrollTop = box.scrollHeight;
+  if (role === 'ai') {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    box.scrollTop = box.scrollHeight;
+  }
 }
 
 function showTyping() {
