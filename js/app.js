@@ -68,7 +68,12 @@ function onMultiClick(btn, stepNum) {
     }
   }
 
-  syncDestination();
+  if (stepNum === 2) {
+    syncDestination();
+  } else {
+    const stepEl = document.getElementById(`step-${stepNum}`);
+    conditions[stepMeta[stepNum].key] = [...stepEl.querySelectorAll('.option-btn.selected')].map(b => b.dataset.value);
+  }
 
   const nextBtn = document.getElementById(`step${stepNum}-next`);
   if (nextBtn) nextBtn.disabled = conditions[stepMeta[stepNum].key].length === 0;
