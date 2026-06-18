@@ -23,7 +23,6 @@ module.exports = async (req, res) => {
       systemInstruction: buildSystemPrompt(conditions)
     });
 
-    // Gemini の history は最後のメッセージを除いた配列
     const geminiHistory = messages.slice(0, -1).map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }]
@@ -32,33 +31,75 @@ module.exports = async (req, res) => {
     const chat = model.startChat({ history: geminiHistory });
     const lastMsg = messages[messages.length - 1];
     const result = await chat.sendMessage(lastMsg.content);
-    const raw = result.response.text();
+    const reply = result.response.text();
 
-    // <SPOTS_JSON>...</SPOTS_JSON> を抽出してフロントへ渡す
-    const spotsMatch = raw.match(/<SPOTS_JSON>([\s\S]*?)<\/SPOTS_JSON>/i);
-    let spots = [];
-    let reply = raw;
-    if (spotsMatch) {
-      try {
-        // Gemini がコードブロックで囲んだ場合も除去して解析
-        const jsonStr = spotsMatch[1].replace(/```(?:json)?/g, '').trim();
-        const parsed = JSON.parse(jsonStr);
-        if (Array.isArray(parsed)) spots = parsed;
-      } catch (e) {
-        console.error('SPOTS_JSON parse error:', e.message, spotsMatch[1]);
-      }
-      reply = raw.replace(/<SPOTS_JSON>[\s\S]*?<\/SPOTS_JSON>/gi, '').trim();
-    } else {
-      console.warn('SPOTS_JSON not found in response');
-    }
+    // 返答からスポット名を抽出してNominatimで座標を取得
+    const spotNames = extractSpotNames(reply);
+    const regionHint = buildRegionHint(conditions);
+    console.log('[geocode] spots:', spotNames, '| region:', regionHint);
+    const spots = await geocodeSpots(spotNames.slice(0, 5), regionHint);
 
     res.status(200).json({ reply, spots });
   } catch (err) {
-    console.error('Gemini API error:', err);
+    console.error('API error:', err);
     res.status(500).json({ error: err.message || 'Gemini API の呼び出しに失敗しました' });
   }
 };
 
+// ─── スポット名の抽出 ────────────────────────────────────────
+// 「1. スポット名」「2. 店名 — ジャンル」形式の行からスポット名を取り出す
+function extractSpotNames(text) {
+  const matches = [...text.matchAll(/^\d+\.\s+\*{0,2}([^*\n\r]+?)\*{0,2}(?:\s*[—–\-｜].*)?$/gm)];
+  return [...new Set(
+    matches
+      .map(m => m[1].trim())
+      .filter(name => name.length >= 2 && name.length <= 40)
+  )];
+}
+
+// ─── 地域ヒントの構築 ────────────────────────────────────────
+function buildRegionHint(cond) {
+  if (!cond) return '九州';
+  const parts = [];
+  if (Array.isArray(cond.destination) && cond.destination.length) {
+    parts.push(cond.destination[0]);
+  }
+  if (cond.departure && cond.departure !== '九州外・その他') {
+    parts.push(cond.departure);
+  }
+  parts.push('九州');
+  return parts.join(' ');
+}
+
+// ─── Nominatim ジオコーディング ──────────────────────────────
+async function geocodeSpots(names, regionHint) {
+  const spots = [];
+  for (const name of names) {
+    const q = `${name} ${regionHint}`;
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`;
+      const r = await fetch(url, {
+        headers: {
+          'User-Agent': 'kyushu-touring-chat/1.0 (https://github.com/maclarensennaevo-jpg/kyushu-touring-chat)'
+        }
+      });
+      const data = await r.json();
+      if (Array.isArray(data) && data.length > 0) {
+        spots.push({ name, lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
+        console.log(`[geocode] OK: ${name} → ${data[0].lat}, ${data[0].lon}`);
+      } else {
+        console.log(`[geocode] not found: ${name}`);
+      }
+    } catch (e) {
+      console.error(`[geocode] error: ${name}`, e.message);
+    }
+    // Nominatim 利用規約: 1秒以上の間隔を空ける
+    await new Promise(r => setTimeout(r, 1100));
+  }
+  return spots;
+}
+
+// ─── システムプロンプト ──────────────────────────────────────
 function buildSystemPrompt(cond) {
   if (!cond) {
     return `あなたは九州ツーリングの専門アドバイザーです。
@@ -119,14 +160,6 @@ ${gourmetSection}
 
 **ルート概要**：
 （ルート全体の流れや雰囲気、見どころのつながりを3〜4行で説明）
-
-## 位置情報の提供（必須）
-返答の末尾に、紹介したすべてのスポット・店舗の緯度経度を必ず以下の形式で出力してください。
-マークダウンのコードブロックは使わず、タグをそのまま出力してください。
-
-<SPOTS_JSON>
-[{"name":"スポット名","lat":緯度の数値,"lng":経度の数値},{"name":"スポット名2","lat":緯度,"lng":経度}]
-</SPOTS_JSON>
 
 ## 追加質問への対応
 宿泊地・グルメ・道路状況・バイクの停め場所・温泉・給油ポイントなど、何でも答えてください。

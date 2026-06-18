@@ -212,7 +212,6 @@ async function callAPI() {
     history.push({ role: 'assistant', content: data.reply });
     removeTyping(typingId);
     addMessage('ai', data.reply);
-    console.log('[spots]', data.spots);
     if (data.spots && data.spots.length > 0) renderMap(data.spots);
   } catch (err) {
     removeTyping(typingId);
