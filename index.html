@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>九州ツーリング プランナー</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">🏍️</span>
+                    <h1>九州ツーリング プランナー</h1>
+                </div>
+                <p class="subtitle">条件を選ぶだけ — AI がルートを提案します</p>
+            </div>
+        </header>
+
+        <!-- ウィザードセクション -->
+        <main id="wizard-section" class="container">
+            <div class="progress-bar">
+                <div class="progress-steps">
+                    <div class="step active" data-step="1">
+                        <div class="step-circle">1</div>
+                        <span>出発地</span>
+                    </div>
+                    <div class="step" data-step="2">
+                        <div class="step-circle">2</div>
+                        <span>エリア</span>
+                    </div>
+                    <div class="step" data-step="3">
+                        <div class="step-circle">3</div>
+                        <span>日程</span>
+                    </div>
+                    <div class="step" data-step="4">
+                        <div class="step-circle">4</div>
+                        <span>テーマ</span>
+                    </div>
+                    <div class="step" data-step="5">
+                        <div class="step-circle">5</div>
+                        <span>距離感</span>
+                    </div>
+                    <div class="step" data-step="6">
+                        <div class="step-circle">6</div>
+                        <span>人数</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: 出発地 -->
+            <div class="wizard-step active" id="step-1">
+                <h2>出発地はどこですか？</h2>
+                <p class="step-desc">九州内の出発地を選択してください</p>
+                <div class="option-grid">
+                    <button class="option-btn" data-value="福岡">🏙️ 福岡</button>
+                    <button class="option-btn" data-value="佐賀">🍵 佐賀</button>
+                    <button class="option-btn" data-value="長崎">⛩️ 長崎</button>
+                    <button class="option-btn" data-value="熊本">🏯 熊本</button>
+                    <button class="option-btn" data-value="大分">♨️ 大分</button>
+                    <button class="option-btn" data-value="宮崎">🌊 宮崎</button>
+                    <button class="option-btn" data-value="鹿児島">🌋 鹿児島</button>
+                    <button class="option-btn" data-value="九州外・その他">🗾 その他</button>
+                </div>
+            </div>
+
+            <!-- Step 2: 目的地エリア (複数選択) -->
+            <div class="wizard-step" id="step-2">
+                <h2>行きたいエリアは？</h2>
+                <p class="step-desc">複数選択できます（未選択でスキップ可）</p>
+                <div class="option-grid">
+                    <button class="option-btn multi" data-value="福岡周辺">福岡周辺</button>
+                    <button class="option-btn multi" data-value="佐賀・有田">佐賀・有田</button>
+                    <button class="option-btn multi" data-value="長崎・五島">長崎・五島</button>
+                    <button class="option-btn multi" data-value="熊本・阿蘇">熊本・阿蘇</button>
+                    <button class="option-btn multi" data-value="大分・別府">大分・別府</button>
+                    <button class="option-btn multi" data-value="宮崎・日南">宮崎・日南</button>
+                    <button class="option-btn multi" data-value="鹿児島・霧島">鹿児島・霧島</button>
+                    <button class="option-btn multi" data-value="離島・フェリー">離島・フェリー</button>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn-back" onclick="prevStep()">← 戻る</button>
+                    <button class="btn-next" onclick="nextStep()">次へ →</button>
+                </div>
+            </div>
+
+            <!-- Step 3: 日程 -->
+            <div class="wizard-step" id="step-3">
+                <h2>日程はどのくらい？</h2>
+                <p class="step-desc">ツーリングの期間を選んでください</p>
+                <div class="option-grid">
+                    <button class="option-btn" data-value="日帰り">🌅 日帰り</button>
+                    <button class="option-btn" data-value="1泊2日">🌙 1泊2日</button>
+                    <button class="option-btn" data-value="2泊3日">🌙🌙 2泊3日</button>
+                    <button class="option-btn" data-value="3泊4日以上">✨ 3泊4日以上</button>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn-back" onclick="prevStep()">← 戻る</button>
+                </div>
+            </div>
+
+            <!-- Step 4: テーマ (複数選択) -->
+            <div class="wizard-step" id="step-4">
+                <h2>ツーリングのテーマは？</h2>
+                <p class="step-desc">複数選択できます</p>
+                <div class="option-grid">
+                    <button class="option-btn multi" data-value="絶景・景観">🏔️ 絶景・景観</button>
+                    <button class="option-btn multi" data-value="グルメ">🍜 グルメ</button>
+                    <button class="option-btn multi" data-value="温泉">♨️ 温泉</button>
+                    <button class="option-btn multi" data-value="歴史・文化">⛩️ 歴史・文化</button>
+                    <button class="option-btn multi" data-value="海岸線ドライブ">🌊 海岸線</button>
+                    <button class="option-btn multi" data-value="山岳・峠">⛰️ 山岳・峠</button>
+                    <button class="option-btn multi" data-value="定番ツーリングスポット">🏍️ 定番スポット</button>
+                    <button class="option-btn multi" data-value="穴場・秘境">🗺️ 穴場・秘境</button>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn-back" onclick="prevStep()">← 戻る</button>
+                    <button class="btn-next" id="step4-next" onclick="nextStep()" disabled>次へ →</button>
+                </div>
+            </div>
+
+            <!-- Step 5: 距離感 -->
+            <div class="wizard-step" id="step-5">
+                <h2>1日の走行距離感は？</h2>
+                <p class="step-desc">目安の走行ペースを選んでください</p>
+                <div class="option-grid distance-grid">
+                    <button class="option-btn wide" data-value="近め（〜200km/日）">
+                        <span class="icon">🐢</span>
+                        <strong>近め</strong>
+                        <small>〜200km / 日</small>
+                    </button>
+                    <button class="option-btn wide" data-value="中程度（200〜400km/日）">
+                        <span class="icon">🏍️</span>
+                        <strong>中程度</strong>
+                        <small>200〜400km / 日</small>
+                    </button>
+                    <button class="option-btn wide" data-value="遠め（400km〜/日）">
+                        <span class="icon">🚀</span>
+                        <strong>遠め</strong>
+                        <small>400km〜 / 日</small>
+                    </button>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn-back" onclick="prevStep()">← 戻る</button>
+                </div>
+            </div>
+
+            <!-- Step 6: 同行人数 -->
+            <div class="wizard-step" id="step-6">
+                <h2>何人でのツーリング？</h2>
+                <p class="step-desc">同行人数を選んでください</p>
+                <div class="option-grid distance-grid">
+                    <button class="option-btn wide" data-value="ソロ（1人）">
+                        <span class="icon">🏍️</span>
+                        <strong>ソロ</strong>
+                        <small>1人</small>
+                    </button>
+                    <button class="option-btn wide" data-value="タンデム（2人）">
+                        <span class="icon">👫</span>
+                        <strong>タンデム</strong>
+                        <small>2人</small>
+                    </button>
+                    <button class="option-btn wide" data-value="グループ（3〜5人）">
+                        <span class="icon">👥</span>
+                        <strong>グループ</strong>
+                        <small>3〜5人</small>
+                    </button>
+                    <button class="option-btn wide" data-value="大グループ（6人以上）">
+                        <span class="icon">🎌</span>
+                        <strong>大グループ</strong>
+                        <small>6人以上</small>
+                    </button>
+                </div>
+                <div class="nav-buttons">
+                    <button class="btn-back" onclick="prevStep()">← 戻る</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- チャットセクション -->
+        <main id="chat-section" class="container hidden">
+            <div class="chat-header">
+                <div class="conditions-summary" id="conditions-summary"></div>
+                <button class="btn-restart" onclick="restartWizard()">🔄 やり直す</button>
+            </div>
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages"></div>
+                <div class="chat-input-area">
+                    <div class="input-wrapper">
+                        <textarea
+                            id="user-input"
+                            placeholder="追加の質問や要望を入力… (Shift+Enter で改行)"
+                            rows="1"
+                            onkeydown="handleKeyDown(event)"
+                        ></textarea>
+                        <button id="send-btn" onclick="sendMessage()" class="send-btn" disabled>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="input-hint">Enter で送信 / Shift+Enter で改行</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

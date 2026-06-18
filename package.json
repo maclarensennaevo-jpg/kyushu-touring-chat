@@ -1,0 +1,12 @@
+{
+  "name": "kyushu-touring-chat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "九州ツーリングプランナー — Gemini API チャットボット",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
