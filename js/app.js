@@ -262,6 +262,10 @@ function md(raw) {
   const s = esc(raw);
   return s
     .replace(/^#{1,3}\s+(.+)$/gm, '<h3>$1</h3>')
+    .replace(/\[GMAP:([^\|]+)\|([^\]]+)\]/g, (_, shop, loc) => {
+      const q = encodeURIComponent(`${shop.trim()} ${loc.trim()}`);
+      return `<a href="https://www.google.com/maps/search/?api=1&amp;query=${q}" target="_blank" rel="noopener noreferrer" class="gmap-link">📍 Googleマップで見る</a>`;
+    })
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/`(.+?)`/g, '<code>$1</code>')

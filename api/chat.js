@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
     const chat = model.startChat({ history: geminiHistory });
     const lastMsg = messages[messages.length - 1];
     const result = await chat.sendMessage(lastMsg.content);
-    const reply = result.response.text();
+    const reply = injectGourmetMapLinks(result.response.text());
 
     // 返答からスポット名を抽出してNominatimで座標を取得
     const spotNames = extractSpotNames(reply);
@@ -45,6 +45,28 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: err.message || 'Gemini API の呼び出しに失敗しました' });
   }
 };
+
+// ─── グルメスポットにGoogleマップリンクを注入 ────────────────
+// グルメセクションの各行に [GMAP:店名|市区町村名] マーカーを付与する
+// フロントの md() 関数でこのマーカーを <a> タグに変換する
+function injectGourmetMapLinks(text) {
+  const lines = text.split('\n');
+  let inGourmet = false;
+  return lines.map(line => {
+    if (line.includes('おすすめグルメスポット')) { inGourmet = true; return line; }
+    // 次の ** 見出しでグルメセクション終了
+    if (inGourmet && /^\*\*/.test(line) && !line.includes('グルメ')) inGourmet = false;
+    if (inGourmet && /^\d+\./.test(line)) {
+      const m = line.match(/^(\d+\.\s+)(.+?)（(.+?)）(.*)$/);
+      if (m) {
+        const shop = m[2].trim();
+        const loc  = m[3].trim();
+        return `${line} [GMAP:${shop}|${loc}]`;
+      }
+    }
+    return line;
+  }).join('\n');
+}
 
 // ─── スポット名の抽出 ────────────────────────────────────────
 // 「1. スポット名」「2. 店名 — ジャンル」形式の行からスポット名を取り出す
@@ -143,8 +165,9 @@ function buildSystemPrompt(cond) {
 
   const gourmetSection = hasGourmet ? `
 **おすすめグルメスポット**（一人でも入りやすい店を1〜2軒）：
-1. 店名 — 料理ジャンル｜一言コメント
-2. 店名 — 料理ジャンル｜一言コメント
+1. 店名（市区町村名） — 料理ジャンル｜一言コメント
+2. 店名（市区町村名） — 料理ジャンル｜一言コメント
+※店名の直後の（）内に市区町村名を必ず記載してください。例：くろかわ荘（小国町）
 ` : '';
 
   return `あなたは九州ツーリングの専門アドバイザーです。

@@ -407,6 +407,23 @@ textarea#user-input::placeholder { color: var(--muted); }
 .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .input-hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.4rem; padding-left: 0.2rem; }
 
+/* ─── Google マップリンク ─── */
+.gmap-link {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: var(--primary);
+  text-decoration: none;
+  margin-left: 0.5em;
+  padding: 0.1em 0.4em;
+  border: 1px solid rgba(255,107,53,0.4);
+  border-radius: 4px;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.gmap-link:hover {
+  background: rgba(255,107,53,0.12);
+}
+
 /* ─── スポット地図 ─── */
 .map-wrapper {
   margin: 0.25rem 0 0.25rem 2.8rem;
