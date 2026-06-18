@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindWizardButtons();
   autoResize(document.getElementById('user-input'));
   document.getElementById('user-input').addEventListener('input', syncSendBtn);
+  document.getElementById('other-area-text').addEventListener('input', syncDestination);
 });
 
 function bindWizardButtons() {
@@ -55,12 +56,34 @@ function onSingleClick(btn, stepNum) {
 
 function onMultiClick(btn, stepNum) {
   btn.classList.toggle('selected');
-  const stepEl = document.getElementById(`step-${stepNum}`);
-  const vals = [...stepEl.querySelectorAll('.option-btn.selected')].map(b => b.dataset.value);
-  conditions[stepMeta[stepNum].key] = vals;
+
+  if (btn.dataset.value === '__other__' && stepNum === 2) {
+    const wrap = document.getElementById('other-area-wrap');
+    if (btn.classList.contains('selected')) {
+      wrap.classList.remove('hidden');
+      document.getElementById('other-area-text').focus();
+    } else {
+      wrap.classList.add('hidden');
+      document.getElementById('other-area-text').value = '';
+    }
+  }
+
+  syncDestination();
 
   const nextBtn = document.getElementById(`step${stepNum}-next`);
-  if (nextBtn) nextBtn.disabled = vals.length === 0;
+  if (nextBtn) nextBtn.disabled = conditions[stepMeta[stepNum].key].length === 0;
+}
+
+function syncDestination() {
+  const stepEl = document.getElementById('step-2');
+  const vals = [...stepEl.querySelectorAll('.option-btn.selected')].flatMap(b => {
+    if (b.dataset.value === '__other__') {
+      const txt = document.getElementById('other-area-text').value.trim();
+      return txt ? [txt] : [];
+    }
+    return [b.dataset.value];
+  });
+  conditions.destination = vals;
 }
 
 function nextStep() {
