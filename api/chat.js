@@ -50,34 +50,59 @@ module.exports = async (req, res) => {
 // 「1. スポット名」「2. 店名 — ジャンル」形式の行からスポット名を取り出す
 function extractSpotNames(text) {
   const matches = [...text.matchAll(/^\d+\.\s+\*{0,2}([^*\n\r]+?)\*{0,2}(?:\s*[—–\-｜].*)?$/gm)];
-  return [...new Set(
+  const names = [...new Set(
     matches
-      .map(m => m[1].trim())
+      .map(m => m[1]
+        .replace(/（[^）]*）/g, '')   // 全角括弧の補足情報を除去
+        .replace(/\([^)]*\)/g, '')    // 半角括弧の補足情報を除去
+        .trim()
+      )
       .filter(name => name.length >= 2 && name.length <= 40)
   )];
+  console.log('[extract] spot names:', names);
+  return names;
 }
 
 // ─── 地域ヒントの構築 ────────────────────────────────────────
+// Nominatim は「スポット名 熊本県」のような形式が最も精度が高い
+// 「九州」を付けると誤マッチするため使わない
 function buildRegionHint(cond) {
-  if (!cond) return '九州';
-  const parts = [];
+  if (!cond) return '';
+
+  const areaToKen = {
+    '阿蘇・九重': '熊本県',
+    '天草・島原': '熊本県',
+    '由布院・別府': '大分県',
+    '指宿・霧島': '鹿児島県',
+    '大隅・佐多岬（九州最南端）': '鹿児島県',
+    '雲仙・長崎市内': '長崎県',
+    '高千穂・延岡': '宮崎県',
+    '宮崎市・日南': '宮崎県',
+    '糸島・唐津': '福岡県'
+  };
+  const departureToKen = {
+    '福岡': '福岡県', '佐賀': '佐賀県', '長崎': '長崎県',
+    '熊本': '熊本県', '大分': '大分県', '宮崎': '宮崎県', '鹿児島': '鹿児島県'
+  };
+
   if (Array.isArray(cond.destination) && cond.destination.length) {
-    parts.push(cond.destination[0]);
+    const ken = areaToKen[cond.destination[0]];
+    if (ken) return ken;
   }
-  if (cond.departure && cond.departure !== '九州外・その他') {
-    parts.push(cond.departure);
+  if (cond.departure && departureToKen[cond.departure]) {
+    return departureToKen[cond.departure];
   }
-  parts.push('九州');
-  return parts.join(' ');
+  return '';
 }
 
 // ─── Nominatim ジオコーディング ──────────────────────────────
 async function geocodeSpots(names, regionHint) {
   const spots = [];
   for (const name of names) {
-    const q = `${name} ${regionHint}`;
+    const q = regionHint ? `${name} ${regionHint}` : name;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`;
+    console.log(`[geocode] query: "${q}"`);
     try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`;
       const r = await fetch(url, {
         headers: {
           'User-Agent': 'kyushu-touring-chat/1.0 (https://github.com/maclarensennaevo-jpg/kyushu-touring-chat)'
@@ -86,16 +111,17 @@ async function geocodeSpots(names, regionHint) {
       const data = await r.json();
       if (Array.isArray(data) && data.length > 0) {
         spots.push({ name, lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) });
-        console.log(`[geocode] OK: ${name} → ${data[0].lat}, ${data[0].lon}`);
+        console.log(`[geocode] OK: "${name}" → ${data[0].lat}, ${data[0].lon} (${data[0].display_name})`);
       } else {
-        console.log(`[geocode] not found: ${name}`);
+        console.log(`[geocode] not found: "${name}"`);
       }
     } catch (e) {
-      console.error(`[geocode] error: ${name}`, e.message);
+      console.error(`[geocode] error: "${name}"`, e.message);
     }
     // Nominatim 利用規約: 1秒以上の間隔を空ける
     await new Promise(r => setTimeout(r, 1100));
   }
+  console.log(`[geocode] result: ${spots.length}/${names.length} spots found`);
   return spots;
 }
 

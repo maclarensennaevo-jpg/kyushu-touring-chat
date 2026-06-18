@@ -295,6 +295,7 @@ function autoResize(ta) {
 }
 
 function renderMap(spots) {
+  console.log('[map] renderMap called with', spots.length, 'spots:', spots);
   const id = `map-tile-${++mapCount}`;
   const wrapper = document.createElement('div');
   wrapper.className = 'map-wrapper';
@@ -303,25 +304,36 @@ function renderMap(spots) {
     <div id="${id}" class="map-tile"></div>`;
   const box = document.getElementById('chat-messages');
   box.appendChild(wrapper);
-  // ここでは scroll しない（addMessage の scrollIntoView を維持する）
 
-  // DOM 挿入後に Leaflet を初期化
+  // DOM が確実にレンダリングされてから Leaflet を初期化
   setTimeout(() => {
+    const container = document.getElementById(id);
+    if (!container) {
+      console.error('[map] container not found:', id);
+      return;
+    }
+    console.log('[map] initializing Leaflet on', id);
+
     const map = L.map(id, { scrollWheelZoom: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    const markers = spots
-      .filter(s => s.lat && s.lng)
-      .map(s => L.marker([s.lat, s.lng]).addTo(map).bindPopup(`<strong>${s.name}</strong>`));
+    const valid = spots.filter(s => s.lat && s.lng);
+    const markers = valid.map(s =>
+      L.marker([s.lat, s.lng]).addTo(map).bindPopup(`<strong>${s.name}</strong>`)
+    );
+    console.log('[map] markers added:', valid.map(s => s.name));
 
     if (markers.length === 1) {
-      map.setView([spots[0].lat, spots[0].lng], 13);
+      map.setView([valid[0].lat, valid[0].lng], 13);
     } else if (markers.length > 1) {
       map.fitBounds(L.featureGroup(markers).getBounds().pad(0.25));
     }
-  }, 80);
+
+    // コンテナサイズを再計算してタイルを正しく描画
+    map.invalidateSize();
+  }, 200);
 }
 
 function restartWizard() {
