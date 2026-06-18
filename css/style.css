@@ -412,8 +412,8 @@ textarea#user-input::placeholder { color: var(--muted); }
   margin: 0.25rem 0 0.25rem 2.8rem;
   border: 1px solid var(--border);
   border-radius: 12px;
-  overflow: hidden;
   animation: fadeUp 0.3s ease;
+  /* overflow:hidden を外す — Leafletタイルが裁断されるため */
 }
 .map-label {
   font-size: 0.72rem;

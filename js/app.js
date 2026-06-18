@@ -299,41 +299,42 @@ function renderMap(spots) {
   const id = `map-tile-${++mapCount}`;
   const wrapper = document.createElement('div');
   wrapper.className = 'map-wrapper';
+  // インラインstyleで高さを明示 — CSSカスケードや親のoverflow:hiddenに勝つ
   wrapper.innerHTML = `
     <div class="map-label">📍 スポット地図（OpenStreetMap）</div>
-    <div id="${id}" class="map-tile"></div>`;
+    <div id="${id}" style="height:300px;width:100%;display:block;"></div>`;
   const box = document.getElementById('chat-messages');
   box.appendChild(wrapper);
 
-  // DOM が確実にレンダリングされてから Leaflet を初期化
-  setTimeout(() => {
-    const container = document.getElementById(id);
-    if (!container) {
-      console.error('[map] container not found:', id);
-      return;
-    }
-    console.log('[map] initializing Leaflet on', id);
+  // rAF を2段重ねることでブラウザが確実にレイアウトを確定してから初期化
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const container = document.getElementById(id);
+      if (!container) { console.error('[map] container not found:', id); return; }
+      console.log('[map] container offsetHeight:', container.offsetHeight, 'offsetWidth:', container.offsetWidth);
 
-    const map = L.map(id, { scrollWheelZoom: false });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+      const map = L.map(container, { scrollWheelZoom: false });
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
 
-    const valid = spots.filter(s => s.lat && s.lng);
-    const markers = valid.map(s =>
-      L.marker([s.lat, s.lng]).addTo(map).bindPopup(`<strong>${s.name}</strong>`)
-    );
-    console.log('[map] markers added:', valid.map(s => s.name));
+      const valid = spots.filter(s => s.lat && s.lng);
+      const markers = valid.map(s =>
+        L.marker([s.lat, s.lng]).addTo(map).bindPopup(`<strong>${s.name}</strong>`)
+      );
+      console.log('[map] markers added:', valid.map(s => s.name));
 
-    if (markers.length === 1) {
-      map.setView([valid[0].lat, valid[0].lng], 13);
-    } else if (markers.length > 1) {
-      map.fitBounds(L.featureGroup(markers).getBounds().pad(0.25));
-    }
+      if (markers.length === 1) {
+        map.setView([valid[0].lat, valid[0].lng], 13);
+      } else if (markers.length > 1) {
+        map.fitBounds(L.featureGroup(markers).getBounds().pad(0.25));
+      }
 
-    // コンテナサイズを再計算してタイルを正しく描画
-    map.invalidateSize();
-  }, 200);
+      // 即時＋300ms後の2回呼んでタイルを確実に描画
+      map.invalidateSize();
+      setTimeout(() => map.invalidateSize(), 300);
+    });
+  });
 }
 
 function restartWizard() {
